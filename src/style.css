@@ -1,0 +1,56 @@
+.gameboard {
+    user-select: none;
+}
+
+.gamecell {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: large;
+    font-weight: bold;
+    position: relative;
+    display: inline-block;
+    box-sizing: border-box;
+    vertical-align: bottom;
+    width: 1.5rem;
+    height: 1.5rem;
+    margin: 0;
+    padding: 0;
+    border-width: 4px;
+    border-style: outset;
+    background-color: lightgray;
+    border-color: whitesmoke;
+}
+
+.gamecell p {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-right: -50%;
+    transform: translate(-50%, -50%);
+    margin: 0;
+}
+
+.gamecell.revealed,
+.gamecell:hover:active {
+    border-width: 1px 0px 0px 1px;
+    padding: 0px 0px 5px 0px;
+    border-color: gray;
+    border-style: solid;
+}
+
+/* button:focus {
+    outline: none;
+}
+
+.gameboard button {
+    border-width: 4px;
+    background-color: lightgray;
+    width: 2em;
+    height: 100%;
+}
+
+.gameboard button:disabled {
+    padding: 0px 0px 5px 0px;
+    border-width: 1px 0px 0px 1px;
+    border-color: gray;
+    border-style: solid;
+} */

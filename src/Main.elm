@@ -4,7 +4,7 @@ import Array
 import Array2D exposing (Array2D)
 import Browser
 import Html exposing (..)
-import Html.Attributes exposing (disabled)
+import Html.Attributes exposing (class)
 import Html.Events exposing (onClick)
 
 
@@ -46,6 +46,12 @@ init =
 type Msg
     = ClickRC Int Int
     | Reset
+    | DebugRevealAll
+
+
+revealCell : Array2D CellState -> Int -> Int -> CellState -> CellState
+revealCell _ r c cell =
+    { cell | revealed = Revealed (modBy 9 (r + c)) }
 
 
 update : Msg -> Model -> Model
@@ -66,7 +72,7 @@ update msg model =
                             Array2D.set
                                 r
                                 c
-                                { cell | revealed = Revealed 0 }
+                                (revealCell model r c cell)
                                 model
 
                         _ ->
@@ -75,27 +81,39 @@ update msg model =
         Reset ->
             init
 
+        DebugRevealAll ->
+            Array2D.indexedMap (\r c cell -> revealCell model r c cell) model
+
+
+cellButtonView : List (Attribute msg) -> String -> Html msg
+cellButtonView attrs str =
+    span (class "gamecell" :: attrs) [ p [] [ text str ] ]
+
 
 cellView : Int -> Int -> CellState -> Html Msg
 cellView row col state =
     case state.revealed of
         Default ->
-            button [ onClick (ClickRC row col) ] [ text "?" ]
+            cellButtonView [ onClick (ClickRC row col) ] ""
+
+        Revealed 0 ->
+            cellButtonView [ class "revealed" ] ""
 
         Revealed n ->
-            button [ disabled True ] [ text (String.fromInt n) ]
+            cellButtonView [ class "revealed" ] (String.fromInt n)
 
 
 view : Model -> Html Msg
 view model =
     div []
         [ button [ onClick Reset ] [ text "Reset" ]
-        , table []
+        , button [ onClick DebugRevealAll ] [ text "DEBUG: Reveal All" ]
+        , div [ class "gameboard" ]
             (List.indexedMap
                 (\r row ->
-                    tr []
+                    div []
                         (List.indexedMap
-                            (\c cell -> td [] [ cellView r c cell ])
+                            (\c cell -> cellView r c cell)
                             (Array.toList row)
                         )
                 )
