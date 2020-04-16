@@ -19,10 +19,7 @@ main =
 
 type CellRevealedState
     = Default
-    | Flagged
     | Revealed Int
-    | RevealedBomb
-    | Exploded
 
 
 type alias CellState =
@@ -87,9 +84,6 @@ cellView row col state =
 
         Revealed n ->
             button [ disabled True ] [ text (String.fromInt n) ]
-
-        _ ->
-            text "??"
 
 
 view : Model -> Html Msg
