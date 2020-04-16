@@ -76,7 +76,7 @@ update msg model =
                             model
 
         Reset ->
-            model
+            init
 
 
 cellView : Int -> Int -> CellState -> Html Msg
@@ -94,14 +94,17 @@ cellView row col state =
 
 view : Model -> Html Msg
 view model =
-    table []
-        (List.indexedMap
-            (\r row ->
-                tr []
-                    (List.indexedMap
-                        (\c cell -> td [] [ cellView r c cell ])
-                        (Array.toList row)
-                    )
+    div []
+        [ button [ onClick Reset ] [ text "Reset" ]
+        , table []
+            (List.indexedMap
+                (\r row ->
+                    tr []
+                        (List.indexedMap
+                            (\c cell -> td [] [ cellView r c cell ])
+                            (Array.toList row)
+                        )
+                )
+                (Array.toList model.data)
             )
-            (Array.toList model.data)
-        )
+        ]
