@@ -76,15 +76,7 @@ initModel rows cols n =
     , numMines = n
     , rows = rows
     , cols = cols
-    , grid =
-        Array2D.initialize
-            rows
-            cols
-            (\_ _ ->
-                { revealed = Default
-                , isMine = False
-                }
-            )
+    , grid = Array2D.initialize rows cols (\_ _ -> defaultCellState)
     }
 
 
@@ -171,7 +163,7 @@ update msg model =
 
         ChangeInput k v ->
             let
-                vIntOr =
+                vPosIntOr =
                     \def ->
                         case String.toInt v of
                             Nothing ->
@@ -191,19 +183,19 @@ update msg model =
                     case k of
                         NumMines ->
                             { model
-                                | numMines = vIntOr model.numMines
+                                | numMines = vPosIntOr model.numMines
                                 , userInputs = { userInputs | numMines = v }
                             }
 
                         Rows ->
                             { model
-                                | rows = vIntOr model.rows
+                                | rows = vPosIntOr model.rows
                                 , userInputs = { userInputs | rows = v }
                             }
 
                         Cols ->
                             { model
-                                | cols = vIntOr model.cols
+                                | cols = vPosIntOr model.cols
                                 , userInputs = { userInputs | cols = v }
                             }
             in
