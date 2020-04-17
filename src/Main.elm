@@ -40,6 +40,11 @@ type alias CellState =
     }
 
 
+defaultCellState : CellState
+defaultCellState =
+    { revealed = Default, isMine = False }
+
+
 type alias Model =
     Array2D CellState
 
@@ -58,15 +63,22 @@ initModel rows cols =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( initModel 10 10, Cmd.none )
+    update Reset (initModel 10 10)
 
 
 
 -- UPDATE
 
 
-allCoords : Int -> Int -> List ( Int, Int )
-allCoords rows cols =
+allCoords : Array2D a -> List ( Int, Int )
+allCoords grid =
+    let
+        rows =
+            Array2D.rows grid
+
+        cols =
+            Array2D.columns grid
+    in
     List.range 0 (rows - 1)
         |> List.map
             (\r ->
@@ -98,6 +110,11 @@ setMines n coords grid =
         |> List.foldl (\( r, c ) acc -> setMine r c acc) grid
 
 
+resetGrid : Array2D CellState -> Array2D CellState
+resetGrid grid =
+    Array2D.map (\_ -> defaultCellState) grid
+
+
 revealCell : Array2D CellState -> Int -> Int -> CellState -> CellState
 revealCell _ r c cell =
     { cell
@@ -111,18 +128,17 @@ revealCell _ r c cell =
 
 
 type Msg
-    = RandomizeBombs
+    = Reset
     | SetBombs (List ( Int, Int ))
     | ClickRC Int Int
-    | Reset
     | DebugRevealAll
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        RandomizeBombs ->
-            ( model, generate SetBombs (shuffle (allCoords 10 10)) )
+        Reset ->
+            ( resetGrid model, generate SetBombs (shuffle (allCoords model)) )
 
         SetBombs coords ->
             ( setMines 10 coords model, Cmd.none )
@@ -150,15 +166,25 @@ update msg model =
                         _ ->
                             ( model, Cmd.none )
 
-        Reset ->
-            ( initModel 10 10, Cmd.none )
-
         DebugRevealAll ->
             ( Array2D.indexedMap
                 (\r c cell -> revealCell model r c cell)
                 model
             , Cmd.none
             )
+
+
+
+-- SUBSCRIPTIONS
+
+
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+    Sub.none
+
+
+
+-- VIEW
 
 
 cellButtonView : List (Attribute msg) -> String -> Html msg
@@ -182,24 +208,10 @@ cellView row col state =
             cellButtonView [ class "revealed" ] "💣"
 
 
-
--- SUBSCRIPTIONS
-
-
-subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Sub.none
-
-
-
--- VIEW
-
-
 view : Model -> Html Msg
 view model =
     div []
         [ button [ onClick Reset ] [ text "Reset" ]
-        , button [ onClick RandomizeBombs ] [ text "Randomize" ]
         , button [ onClick DebugRevealAll ] [ text "DEBUG: Reveal All" ]
         , div [ class "gameboard" ]
             (List.indexedMap
