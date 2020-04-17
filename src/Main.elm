@@ -6,7 +6,6 @@ import Browser
 import Html exposing (..)
 import Html.Attributes exposing (class)
 import Html.Events exposing (onClick)
-import List.Extra exposing (zip)
 import Random exposing (generate)
 import Random.List exposing (shuffle)
 
