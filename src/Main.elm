@@ -129,16 +129,71 @@ setMines n coords grid =
         |> List.foldl (\( r, c ) acc -> setMine r c acc) grid
 
 
-revealCell : Array2D CellState -> Int -> Int -> CellState -> CellState
-revealCell _ r c cell =
+revealCell : Int -> Int -> CellState -> Array2D CellState -> CellState
+revealCell r c cell grid =
     { cell
         | revealed =
             if cell.isMine then
                 RevealedMine
 
             else
-                Revealed (modBy 9 (r + c))
+                let
+                    neighborMines =
+                        [ ( r - 1, c - 1 )
+                        , ( r - 1, c )
+                        , ( r - 1, c + 1 )
+                        , ( r, c - 1 )
+                        , ( r, c + 1 )
+                        , ( r + 1, c - 1 )
+                        , ( r + 1, c )
+                        , ( r + 1, c + 1 )
+                        ]
+                            |> List.filterMap (\( nr, nc ) -> Array2D.get nr nc grid)
+                            |> List.map
+                                (\neighborCell ->
+                                    if neighborCell.isMine then
+                                        1
+
+                                    else
+                                        0
+                                )
+                            |> List.sum
+                in
+                Revealed neighborMines
     }
+
+
+revealCellsFrom : Int -> Int -> Array2D CellState -> Array2D CellState
+revealCellsFrom r c grid =
+    case Array2D.get r c grid of
+        Nothing ->
+            grid
+
+        Just oldCell ->
+            let
+                newCell =
+                    revealCell r c oldCell grid
+
+                newGrid =
+                    Array2D.set r c newCell grid
+            in
+            case newCell.revealed of
+                Revealed 0 ->
+                    [ ( r - 1, c )
+                    , ( r, c - 1 )
+                    , ( r, c + 1 )
+                    , ( r + 1, c )
+                    ]
+                        |> List.filterMap
+                            (\( nr, nc ) ->
+                                Array2D.get nr nc newGrid
+                                    |> Maybe.andThen (\cell -> Just ( nr, nc, cell ))
+                            )
+                        |> List.filter (\( _, _, cell ) -> cell.revealed == Default)
+                        |> List.foldl (\( nr, nc, _ ) acc -> revealCellsFrom nr nc acc) newGrid
+
+                _ ->
+                    newGrid
 
 
 type Msg
@@ -220,11 +275,7 @@ update msg model =
                         Default ->
                             ( { model
                                 | grid =
-                                    Array2D.set
-                                        r
-                                        c
-                                        (revealCell model.grid r c cell)
-                                        model.grid
+                                    revealCellsFrom r c model.grid
                               }
                             , Cmd.none
                             )
@@ -236,7 +287,7 @@ update msg model =
             ( { model
                 | grid =
                     Array2D.indexedMap
-                        (\r c cell -> revealCell model.grid r c cell)
+                        (\r c cell -> revealCell r c cell model.grid)
                         model.grid
               }
             , Cmd.none
