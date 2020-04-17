@@ -30,7 +30,7 @@
 }
 
 .revealed,
-.gameboard:not(.gameover) .gamecell:hover:active {
+.gameboard:not(.gameover).left-mouse-down .gamecell:not(.flagged):hover:active {
     border-width: 1px 0px 0px 1px;
     padding: 0px 0px 5px 0px;
     border-color: gray;

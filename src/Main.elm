@@ -5,7 +5,9 @@ import Array2D exposing (Array2D)
 import Browser
 import Html exposing (..)
 import Html.Attributes exposing (checked, class, type_, value)
-import Html.Events exposing (onClick, onInput)
+import Html.Events exposing (custom, onClick, onInput)
+import Html.Events.Extra.Mouse as Mouse
+import Json.Decode
 import Random exposing (generate)
 import Shuffle exposing (shuffle)
 
@@ -49,6 +51,7 @@ main =
 
 type CellRevealedState
     = Default
+    | Flagged
     | Revealed Int
     | RevealedMine
 
@@ -70,6 +73,7 @@ type alias Model =
         , rows : String
         , cols : String
         , debugShowAll : Bool
+        , leftButtonDown : Bool
         }
     , numMines : Int
     , rows : Int
@@ -92,6 +96,7 @@ initModel rows cols n =
         , rows = String.fromInt rows
         , cols = String.fromInt cols
         , debugShowAll = False
+        , leftButtonDown = True
         }
     , numMines = n
     , rows = rows
@@ -113,11 +118,18 @@ getRevealedCells grid =
     gridToFlatList grid
         |> List.map
             (\cell ->
-                if cell.revealed == Default then
-                    0
+                case cell.revealed of
+                    Default ->
+                        0
 
-                else
-                    1
+                    Flagged ->
+                        0
+
+                    Revealed _ ->
+                        1
+
+                    RevealedMine ->
+                        1
             )
         |> List.sum
 
@@ -256,8 +268,11 @@ type Msg
     | ChangeInput UserInput String
     | FirstMove FirstMoveRecord
     | ClickRC Int Int
+    | RightClickRC Int Int
     | DebugRevealAll
     | DebugToggleShowAll
+    | LeftMouseDown Bool
+    | Nop
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -284,11 +299,11 @@ update msg model =
                     newGrid =
                         revealCellsFrom r c model_.grid
 
-                    clickedCell =
+                    maybeClickedCellIsMine =
                         Array2D.get r c newGrid |> Maybe.map (\cell -> cell.isMine)
 
                     isGameOver =
-                        clickedCell == Just True
+                        maybeClickedCellIsMine == Just True
                 in
                 ( { model_
                     | grid = newGrid
@@ -391,6 +406,29 @@ update msg model =
             else
                 digCell r c model
 
+        RightClickRC r c ->
+            let
+                grid =
+                    model.grid
+
+                newGrid =
+                    case Array2D.get r c grid of
+                        Nothing ->
+                            grid
+
+                        Just cell ->
+                            case cell.revealed of
+                                Default ->
+                                    Array2D.set r c { cell | revealed = Flagged } grid
+
+                                Flagged ->
+                                    Array2D.set r c { cell | revealed = Default } grid
+
+                                _ ->
+                                    grid
+            in
+            ( { model | grid = newGrid }, Cmd.none )
+
         DebugRevealAll ->
             ( { model
                 | grid =
@@ -400,6 +438,20 @@ update msg model =
               }
             , Cmd.none
             )
+
+        LeftMouseDown isDown ->
+            let
+                userInputs =
+                    model.userInputs
+            in
+            ( { model
+                | userInputs = { userInputs | leftButtonDown = isDown }
+              }
+            , Cmd.none
+            )
+
+        Nop ->
+            ( model, Cmd.none )
 
 
 
@@ -415,21 +467,38 @@ subscriptions _ =
 -- VIEW
 
 
+onRightClick : msg -> Attribute msg
+onRightClick msg =
+    custom "contextmenu"
+        (Json.Decode.succeed
+            { message = msg
+            , stopPropagation = True
+            , preventDefault = True
+            }
+        )
+
+
 cellButtonView : List (Attribute msg) -> String -> Html msg
 cellButtonView attrs str =
     span (class "gamecell" :: attrs) [ p [] [ text str ] ]
 
 
-cellView : Bool -> Int -> Int -> CellState -> Html Msg
-cellView showMines row col cell =
+cellView : Bool -> Bool -> Int -> Int -> CellState -> Html Msg
+cellView debugShow gameOver row col cell =
+    let
+        showMines =
+            debugShow || gameOver
+    in
     case cell.revealed of
         Default ->
             cellButtonView
-                (if showMines then
+                (if gameOver then
                     []
 
                  else
-                    [ onClick (ClickRC row col) ]
+                    [ onClick (ClickRC row col)
+                    , onRightClick (RightClickRC row col)
+                    ]
                 )
                 (if showMines && cell.isMine then
                     "💣"
@@ -438,17 +507,35 @@ cellView showMines row col cell =
                     ""
                 )
 
+        Flagged ->
+            cellButtonView
+                (if showMines then
+                    [ class "flagged" ]
+
+                 else
+                    [ class "flagged"
+                    , onRightClick (RightClickRC row col)
+                    ]
+                )
+                (if showMines && not cell.isMine then
+                    "✖️"
+
+                 else
+                    "🚩"
+                )
+
         Revealed 0 ->
-            cellButtonView [ class "revealed" ] ""
+            cellButtonView [ class "revealed", onRightClick Nop ] ""
 
         Revealed n ->
             cellButtonView
                 [ class (String.append "revealed revealed-" (String.fromInt n))
+                , onRightClick Nop
                 ]
                 (String.fromInt n)
 
         RevealedMine ->
-            cellButtonView [ class "revealed mine" ] "💥"
+            cellButtonView [ class "revealed mine", onRightClick Nop ] "💥"
 
 
 uiView : UserInput -> String -> String -> Html Msg
@@ -474,11 +561,20 @@ view : Model -> Html Msg
 view model =
     div []
         [ div
-            (if model.isGameOver then
-                [ class "gameboard gameover" ]
+            (Mouse.onDown (\event -> LeftMouseDown (event.button == Mouse.MainButton))
+                :: class "gameboard"
+                :: (if model.isGameOver then
+                        [ class "gameover" ]
 
-             else
-                [ class "gameboard" ]
+                    else
+                        []
+                   )
+                ++ (if model.userInputs.leftButtonDown then
+                        [ class "left-mouse-down" ]
+
+                    else
+                        []
+                   )
             )
             (List.indexedMap
                 (\r row ->
@@ -486,9 +582,8 @@ view model =
                         (List.indexedMap
                             (\c cell ->
                                 cellView
-                                    (model.userInputs.debugShowAll
-                                        || model.isGameOver
-                                    )
+                                    model.userInputs.debugShowAll
+                                    model.isGameOver
                                     r
                                     c
                                     cell
