@@ -16,17 +16,17 @@ import Shuffle exposing (shuffle)
 
 defaultRows : Int
 defaultRows =
-    40
+    20
 
 
 defaultCols : Int
 defaultCols =
-    40
+    20
 
 
 defaultMines : Int
 defaultMines =
-    1599
+    50
 
 
 
@@ -217,10 +217,14 @@ revealCellsFrom r c grid =
             in
             case newCell.revealed of
                 Revealed 0 ->
-                    [ ( r - 1, c )
+                    [ ( r - 1, c - 1 )
+                    , ( r - 1, c )
+                    , ( r - 1, c + 1 )
                     , ( r, c - 1 )
                     , ( r, c + 1 )
+                    , ( r + 1, c - 1 )
                     , ( r + 1, c )
+                    , ( r + 1, c + 1 )
                     ]
                         |> List.filterMap
                             (\( nr, nc ) ->
