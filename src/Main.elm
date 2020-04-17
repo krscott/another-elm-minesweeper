@@ -442,7 +442,10 @@ cellView showMines row col cell =
             cellButtonView [ class "revealed" ] ""
 
         Revealed n ->
-            cellButtonView [ class "revealed" ] (String.fromInt n)
+            cellButtonView
+                [ class (String.append "revealed revealed-" (String.fromInt n))
+                ]
+                (String.fromInt n)
 
         RevealedMine ->
             cellButtonView [ class "revealed mine" ] "💥"
