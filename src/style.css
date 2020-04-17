@@ -30,11 +30,15 @@
 }
 
 .gamecell.revealed,
-.gamecell:hover:active {
+.gameboard:not(.gameover) .gamecell:hover:active {
     border-width: 1px 0px 0px 1px;
     padding: 0px 0px 5px 0px;
     border-color: gray;
     border-style: solid;
+}
+
+.gamecell.revealed.mine {
+    background-color: red;
 }
 
 .menu {

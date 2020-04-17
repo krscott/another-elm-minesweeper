@@ -4,7 +4,7 @@ import Array
 import Array2D exposing (Array2D)
 import Browser
 import Html exposing (..)
-import Html.Attributes exposing (class, type_, value)
+import Html.Attributes exposing (checked, class, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Random exposing (generate)
 import Shuffle exposing (shuffle)
@@ -69,11 +69,13 @@ type alias Model =
         { numMines : String
         , rows : String
         , cols : String
+        , debugShowAll : Bool
         }
     , numMines : Int
     , rows : Int
     , cols : Int
     , grid : Array2D CellState
+    , isGameOver : Bool
     }
 
 
@@ -89,11 +91,13 @@ initModel rows cols n =
         { numMines = String.fromInt n
         , rows = String.fromInt rows
         , cols = String.fromInt cols
+        , debugShowAll = False
         }
     , numMines = n
     , rows = rows
     , cols = cols
     , grid = Array2D.repeat rows cols defaultCellState
+    , isGameOver = False
     }
 
 
@@ -232,7 +236,9 @@ revealCellsFrom r c grid =
                                     |> Maybe.andThen (\cell -> Just ( nr, nc, cell ))
                             )
                         |> List.filter (\( _, _, cell ) -> cell.revealed == Default)
-                        |> List.foldl (\( nr, nc, _ ) acc -> revealCellsFrom nr nc acc) newGrid
+                        |> List.foldl
+                            (\( nr, nc, _ ) acc -> revealCellsFrom nr nc acc)
+                            newGrid
 
                 _ ->
                     newGrid
@@ -251,6 +257,7 @@ type Msg
     | FirstMove FirstMoveRecord
     | ClickRC Int Int
     | DebugRevealAll
+    | DebugToggleShowAll
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -270,6 +277,25 @@ update msg model =
                             (allCoords grid)
                         )
                     )
+
+        digCell =
+            \r c model_ ->
+                let
+                    newGrid =
+                        revealCellsFrom r c model_.grid
+
+                    clickedCell =
+                        Array2D.get r c newGrid |> Maybe.map (\cell -> cell.isMine)
+
+                    isGameOver =
+                        clickedCell == Just True
+                in
+                ( { model_
+                    | grid = newGrid
+                    , isGameOver = isGameOver
+                  }
+                , Cmd.none
+                )
     in
     case msg of
         Reset ->
@@ -319,6 +345,20 @@ update msg model =
             in
             ( newModel, Cmd.none )
 
+        DebugToggleShowAll ->
+            let
+                userInputs =
+                    model.userInputs
+            in
+            ( { model
+                | userInputs =
+                    { userInputs
+                        | debugShowAll = not userInputs.debugShowAll
+                    }
+              }
+            , Cmd.none
+            )
+
         FirstMove { r, c, coords } ->
             let
                 grid =
@@ -340,7 +380,8 @@ update msg model =
                             else
                                 grid
                     in
-                    ( { model | grid = revealCellsFrom r c safeGrid }, Cmd.none )
+                    { model | grid = safeGrid }
+                        |> digCell r c
 
         ClickRC r c ->
             if getRevealedCells model.grid == 0 then
@@ -348,11 +389,7 @@ update msg model =
                 ( model, genNewMines r c model.grid )
 
             else
-                ( { model
-                    | grid = revealCellsFrom r c model.grid
-                  }
-                , Cmd.none
-                )
+                digCell r c model
 
         DebugRevealAll ->
             ( { model
@@ -383,11 +420,23 @@ cellButtonView attrs str =
     span (class "gamecell" :: attrs) [ p [] [ text str ] ]
 
 
-cellView : Int -> Int -> CellState -> Html Msg
-cellView row col state =
-    case state.revealed of
+cellView : Bool -> Int -> Int -> CellState -> Html Msg
+cellView showMines row col cell =
+    case cell.revealed of
         Default ->
-            cellButtonView [ onClick (ClickRC row col) ] ""
+            cellButtonView
+                (if showMines then
+                    []
+
+                 else
+                    [ onClick (ClickRC row col) ]
+                )
+                (if showMines && cell.isMine then
+                    "💣"
+
+                 else
+                    ""
+                )
 
         Revealed 0 ->
             cellButtonView [ class "revealed" ] ""
@@ -396,28 +445,51 @@ cellView row col state =
             cellButtonView [ class "revealed" ] (String.fromInt n)
 
         RevealedMine ->
-            cellButtonView [ class "revealed" ] "💣"
+            cellButtonView [ class "revealed mine" ] "💥"
 
 
-uiView : String -> UserInput -> String -> Html Msg
-uiView label uiType uiValue =
+uiView : UserInput -> String -> String -> Html Msg
+uiView uiType name uiValue =
     div [ class "user-input" ]
-        [ div [] [ text label ]
+        [ div [] [ text name ]
         , input
             [ type_ "number", value uiValue, onInput (ChangeInput uiType) ]
             []
         ]
 
 
+checkbox : msg -> String -> Bool -> Html msg
+checkbox msg name uiValue =
+    label
+        []
+        [ input [ type_ "checkbox", onClick msg, checked uiValue ] []
+        , text name
+        ]
+
+
 view : Model -> Html Msg
 view model =
     div []
-        [ div [ class "gameboard" ]
+        [ div
+            (if model.isGameOver then
+                [ class "gameboard gameover" ]
+
+             else
+                [ class "gameboard" ]
+            )
             (List.indexedMap
                 (\r row ->
                     div []
                         (List.indexedMap
-                            (\c cell -> cellView r c cell)
+                            (\c cell ->
+                                cellView
+                                    (model.userInputs.debugShowAll
+                                        || model.isGameOver
+                                    )
+                                    r
+                                    c
+                                    cell
+                            )
                             (Array.toList row)
                         )
                 )
@@ -426,9 +498,15 @@ view model =
         , div
             [ class "menu" ]
             [ button [ onClick Reset ] [ text "Reset" ]
+            , uiView NumMines "Mines" model.userInputs.numMines
+            , uiView Rows "Rows" model.userInputs.rows
+            , uiView Cols "Cols" model.userInputs.cols
+            , div []
+                [ checkbox
+                    DebugToggleShowAll
+                    "DEBUG: Show Bombs"
+                    model.userInputs.debugShowAll
+                ]
             , button [ onClick DebugRevealAll ] [ text "DEBUG: Reveal All" ]
-            , uiView "Mines" NumMines model.userInputs.numMines
-            , uiView "Rows" Rows model.userInputs.rows
-            , uiView "Cols" Cols model.userInputs.cols
             ]
         ]
