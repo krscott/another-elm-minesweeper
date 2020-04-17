@@ -1,5 +1,7 @@
 module Main exposing (main)
 
+-- import Random.List exposing (shuffle)
+
 import Array
 import Array2D exposing (Array2D)
 import Browser
@@ -7,7 +9,7 @@ import Html exposing (..)
 import Html.Attributes exposing (class)
 import Html.Events exposing (onClick)
 import Random exposing (generate)
-import Random.List exposing (shuffle)
+import Shuffle exposing (shuffle)
 
 
 
@@ -63,7 +65,7 @@ initModel rows cols =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    update Reset (initModel 10 10)
+    update Reset (initModel 10 15)
 
 
 
