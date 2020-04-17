@@ -37,20 +37,15 @@
     border-style: solid;
 }
 
-/* button:focus {
-    outline: none;
+.menu {
+    margin-top: 0.5rem;
 }
 
-.gameboard button {
-    border-width: 4px;
-    background-color: lightgray;
-    width: 2em;
-    height: 100%;
+.menu > * {
+    margin: 0.3rem;
 }
 
-.gameboard button:disabled {
-    padding: 0px 0px 5px 0px;
-    border-width: 1px 0px 0px 1px;
-    border-color: gray;
-    border-style: solid;
-} */
+.user-input > * {
+    display: inline-block;
+    width: 4rem;
+}

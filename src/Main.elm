@@ -6,8 +6,8 @@ import Array
 import Array2D exposing (Array2D)
 import Browser
 import Html exposing (..)
-import Html.Attributes exposing (class)
-import Html.Events exposing (onClick)
+import Html.Attributes exposing (class, type_, value)
+import Html.Events exposing (onClick, onInput)
 import Random exposing (generate)
 import Shuffle exposing (shuffle)
 
@@ -48,24 +48,49 @@ defaultCellState =
 
 
 type alias Model =
-    Array2D CellState
+    { userInputs :
+        { numMines : String
+        , rows : String
+        , cols : String
+        }
+    , numMines : Int
+    , rows : Int
+    , cols : Int
+    , grid : Array2D CellState
+    }
 
 
-initModel : Int -> Int -> Model
-initModel rows cols =
-    Array2D.initialize
-        rows
-        cols
-        (\_ _ ->
-            { revealed = Default
-            , isMine = False
-            }
-        )
+type UserInput
+    = NumMines
+    | Rows
+    | Cols
+
+
+initModel : Int -> Int -> Int -> Model
+initModel rows cols n =
+    { userInputs =
+        { numMines = String.fromInt n
+        , rows = String.fromInt rows
+        , cols = String.fromInt cols
+        }
+    , numMines = n
+    , rows = rows
+    , cols = cols
+    , grid =
+        Array2D.initialize
+            rows
+            cols
+            (\_ _ ->
+                { revealed = Default
+                , isMine = False
+                }
+            )
+    }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    update Reset (initModel 10 15)
+    update Reset (initModel 10 15 20)
 
 
 
@@ -112,11 +137,6 @@ setMines n coords grid =
         |> List.foldl (\( r, c ) acc -> setMine r c acc) grid
 
 
-resetGrid : Array2D CellState -> Array2D CellState
-resetGrid grid =
-    Array2D.map (\_ -> defaultCellState) grid
-
-
 revealCell : Array2D CellState -> Int -> Int -> CellState -> CellState
 revealCell _ r c cell =
     { cell
@@ -131,6 +151,7 @@ revealCell _ r c cell =
 
 type Msg
     = Reset
+    | ChangeInput UserInput String
     | SetBombs (List ( Int, Int ))
     | ClickRC Int Int
     | DebugRevealAll
@@ -140,15 +161,63 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Reset ->
-            ( resetGrid model, generate SetBombs (shuffle (allCoords model)) )
+            let
+                newModel =
+                    initModel model.rows model.cols model.numMines
+            in
+            ( newModel
+            , generate SetBombs (shuffle (allCoords newModel.grid))
+            )
+
+        ChangeInput k v ->
+            let
+                vIntOr =
+                    \def ->
+                        case String.toInt v of
+                            Nothing ->
+                                def
+
+                            Just x ->
+                                if x > 0 then
+                                    x
+
+                                else
+                                    def
+
+                userInputs =
+                    model.userInputs
+
+                newModel =
+                    case k of
+                        NumMines ->
+                            { model
+                                | numMines = vIntOr model.numMines
+                                , userInputs = { userInputs | numMines = v }
+                            }
+
+                        Rows ->
+                            { model
+                                | rows = vIntOr model.rows
+                                , userInputs = { userInputs | rows = v }
+                            }
+
+                        Cols ->
+                            { model
+                                | cols = vIntOr model.cols
+                                , userInputs = { userInputs | cols = v }
+                            }
+            in
+            ( newModel, Cmd.none )
 
         SetBombs coords ->
-            ( setMines 10 coords model, Cmd.none )
+            ( { model | grid = setMines model.numMines coords model.grid }
+            , Cmd.none
+            )
 
         ClickRC r c ->
             let
                 maybeCell =
-                    Array2D.get r c model
+                    Array2D.get r c model.grid
             in
             case maybeCell of
                 Nothing ->
@@ -157,11 +226,14 @@ update msg model =
                 Just cell ->
                     case cell.revealed of
                         Default ->
-                            ( Array2D.set
-                                r
-                                c
-                                (revealCell model r c cell)
-                                model
+                            ( { model
+                                | grid =
+                                    Array2D.set
+                                        r
+                                        c
+                                        (revealCell model.grid r c cell)
+                                        model.grid
+                              }
                             , Cmd.none
                             )
 
@@ -169,9 +241,12 @@ update msg model =
                             ( model, Cmd.none )
 
         DebugRevealAll ->
-            ( Array2D.indexedMap
-                (\r c cell -> revealCell model r c cell)
-                model
+            ( { model
+                | grid =
+                    Array2D.indexedMap
+                        (\r c cell -> revealCell model.grid r c cell)
+                        model.grid
+              }
             , Cmd.none
             )
 
@@ -210,12 +285,20 @@ cellView row col state =
             cellButtonView [ class "revealed" ] "💣"
 
 
+uiView : String -> UserInput -> String -> Html Msg
+uiView label uiType uiValue =
+    div [ class "user-input" ]
+        [ div [] [ text label ]
+        , input
+            [ type_ "number", value uiValue, onInput (ChangeInput uiType) ]
+            []
+        ]
+
+
 view : Model -> Html Msg
 view model =
     div []
-        [ button [ onClick Reset ] [ text "Reset" ]
-        , button [ onClick DebugRevealAll ] [ text "DEBUG: Reveal All" ]
-        , div [ class "gameboard" ]
+        [ div [ class "gameboard" ]
             (List.indexedMap
                 (\r row ->
                     div []
@@ -224,6 +307,14 @@ view model =
                             (Array.toList row)
                         )
                 )
-                (Array.toList model.data)
+                (Array.toList model.grid.data)
             )
+        , div
+            [ class "menu" ]
+            [ button [ onClick Reset ] [ text "Reset" ]
+            , button [ onClick DebugRevealAll ] [ text "DEBUG: Reveal All" ]
+            , uiView "Mines" NumMines model.userInputs.numMines
+            , uiView "Rows" Rows model.userInputs.rows
+            , uiView "Cols" Cols model.userInputs.cols
+            ]
         ]
