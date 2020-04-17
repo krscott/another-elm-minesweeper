@@ -49,6 +49,12 @@ main =
 -- MODEL
 
 
+type UserInput
+    = NumMines
+    | Rows
+    | Cols
+
+
 type CellRevealedState
     = Default
     | Flagged
@@ -83,12 +89,6 @@ type alias Model =
     }
 
 
-type UserInput
-    = NumMines
-    | Rows
-    | Cols
-
-
 initModel : Int -> Int -> Int -> Model
 initModel rows cols n =
     { userInputs =
@@ -104,6 +104,15 @@ initModel rows cols n =
     , grid = Array2D.repeat rows cols defaultCellState
     , isGameOver = False
     }
+
+
+init : () -> ( Model, Cmd Msg )
+init _ =
+    update Reset (initModel defaultRows defaultCols defaultMines)
+
+
+
+-- UPDATE
 
 
 gridToFlatList : Array2D a -> List a
@@ -132,15 +141,6 @@ getRevealedCells grid =
                         1
             )
         |> List.sum
-
-
-init : () -> ( Model, Cmd Msg )
-init _ =
-    update Reset (initModel defaultRows defaultCols defaultMines)
-
-
-
--- UPDATE
 
 
 allCoords : Array2D a -> List ( Int, Int )
@@ -360,20 +360,6 @@ update msg model =
             in
             ( newModel, Cmd.none )
 
-        DebugToggleShowAll ->
-            let
-                userInputs =
-                    model.userInputs
-            in
-            ( { model
-                | userInputs =
-                    { userInputs
-                        | debugShowAll = not userInputs.debugShowAll
-                    }
-              }
-            , Cmd.none
-            )
-
         FirstMove { r, c, coords } ->
             let
                 grid =
@@ -429,17 +415,6 @@ update msg model =
             in
             ( { model | grid = newGrid }, Cmd.none )
 
-        DebugRevealAll ->
-            ( { model
-                | grid =
-                    Array2D.indexedMap
-                        (\r c cell -> revealCell r c cell model.grid)
-                        model.grid
-                , isGameOver = True
-              }
-            , Cmd.none
-            )
-
         LeftMouseDown isDown ->
             let
                 userInputs =
@@ -447,6 +422,31 @@ update msg model =
             in
             ( { model
                 | userInputs = { userInputs | leftButtonDown = isDown }
+              }
+            , Cmd.none
+            )
+
+        DebugToggleShowAll ->
+            let
+                userInputs =
+                    model.userInputs
+            in
+            ( { model
+                | userInputs =
+                    { userInputs
+                        | debugShowAll = not userInputs.debugShowAll
+                    }
+              }
+            , Cmd.none
+            )
+
+        DebugRevealAll ->
+            ( { model
+                | grid =
+                    Array2D.indexedMap
+                        (\r c cell -> revealCell r c cell model.grid)
+                        model.grid
+                , isGameOver = True
               }
             , Cmd.none
             )
