@@ -96,7 +96,7 @@ initModel rows cols n =
         , rows = String.fromInt rows
         , cols = String.fromInt cols
         , debugShowAll = False
-        , leftButtonDown = True
+        , leftButtonDown = False
         }
     , numMines = n
     , rows = rows
@@ -435,6 +435,7 @@ update msg model =
                     Array2D.indexedMap
                         (\r c cell -> revealCell r c cell model.grid)
                         model.grid
+                , isGameOver = True
               }
             , Cmd.none
             )
@@ -509,13 +510,14 @@ cellView debugShow gameOver row col cell =
 
         Flagged ->
             cellButtonView
-                (if showMines then
-                    [ class "flagged" ]
+                (class "flagged"
+                    :: (if gameOver then
+                            []
 
-                 else
-                    [ class "flagged"
-                    , onRightClick (RightClickRC row col)
-                    ]
+                        else
+                            [ onRightClick (RightClickRC row col)
+                            ]
+                       )
                 )
                 (if showMines && not cell.isMine then
                     "✖️"
@@ -525,17 +527,16 @@ cellView debugShow gameOver row col cell =
                 )
 
         Revealed 0 ->
-            cellButtonView [ class "revealed", onRightClick Nop ] ""
+            cellButtonView [ class "revealed" ] ""
 
         Revealed n ->
             cellButtonView
                 [ class (String.append "revealed revealed-" (String.fromInt n))
-                , onRightClick Nop
                 ]
                 (String.fromInt n)
 
         RevealedMine ->
-            cellButtonView [ class "revealed mine", onRightClick Nop ] "💥"
+            cellButtonView [ class "revealed mine" ] "💥"
 
 
 uiView : UserInput -> String -> String -> Html Msg
@@ -559,9 +560,38 @@ checkbox msg name uiValue =
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ div
-            (Mouse.onDown (\event -> LeftMouseDown (event.button == Mouse.MainButton))
+    let
+        smiley =
+            if model.isGameOver then
+                "😵"
+
+            else if model.userInputs.leftButtonDown then
+                "😮"
+
+            else
+                "🙂"
+    in
+    main_ [ onRightClick Nop ]
+        [ div [ class "header" ]
+            [ div [ class "reset-button", onClick Reset ] [ p [] [ text smiley ] ]
+            ]
+        , div
+            (Mouse.onDown
+                (\event ->
+                    if event.button == Mouse.MainButton then
+                        LeftMouseDown True
+
+                    else
+                        Nop
+                )
+                :: Mouse.onUp
+                    (\event ->
+                        if event.button == Mouse.MainButton then
+                            LeftMouseDown False
+
+                        else
+                            Nop
+                    )
                 :: class "gameboard"
                 :: (if model.isGameOver then
                         [ class "gameover" ]
@@ -595,8 +625,7 @@ view model =
             )
         , div
             [ class "menu" ]
-            [ button [ onClick Reset ] [ text "Reset" ]
-            , uiView NumMines "Mines" model.userInputs.numMines
+            [ uiView NumMines "Mines" model.userInputs.numMines
             , uiView Rows "Rows" model.userInputs.rows
             , uiView Cols "Cols" model.userInputs.cols
             , div []
