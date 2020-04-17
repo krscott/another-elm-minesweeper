@@ -1,7 +1,5 @@
 module Main exposing (main)
 
--- import Random.List exposing (shuffle)
-
 import Array
 import Array2D exposing (Array2D)
 import Browser
@@ -10,6 +8,25 @@ import Html.Attributes exposing (class, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Random exposing (generate)
 import Shuffle exposing (shuffle)
+
+
+
+-- DEFAULTS
+
+
+defaultRows : Int
+defaultRows =
+    40
+
+
+defaultCols : Int
+defaultCols =
+    40
+
+
+defaultMines : Int
+defaultMines =
+    1599
 
 
 
@@ -76,13 +93,34 @@ initModel rows cols n =
     , numMines = n
     , rows = rows
     , cols = cols
-    , grid = Array2D.initialize rows cols (\_ _ -> defaultCellState)
+    , grid = Array2D.repeat rows cols defaultCellState
     }
+
+
+gridToFlatList : Array2D a -> List a
+gridToFlatList grid =
+    Array.toList grid.data
+        |> List.map (\arr -> Array.toList arr)
+        |> List.concat
+
+
+getRevealedCells : Array2D CellState -> Int
+getRevealedCells grid =
+    gridToFlatList grid
+        |> List.map
+            (\cell ->
+                if cell.revealed == Default then
+                    0
+
+                else
+                    1
+            )
+        |> List.sum
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    update Reset (initModel 10 15 20)
+    update Reset (initModel defaultRows defaultCols defaultMines)
 
 
 
@@ -196,25 +234,46 @@ revealCellsFrom r c grid =
                     newGrid
 
 
+type alias FirstMoveRecord =
+    { r : Int
+    , c : Int
+    , coords : List ( Int, Int )
+    }
+
+
 type Msg
     = Reset
     | ChangeInput UserInput String
-    | SetBombs (List ( Int, Int ))
+    | FirstMove FirstMoveRecord
     | ClickRC Int Int
     | DebugRevealAll
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
+    let
+        genNewMines =
+            \r c grid ->
+                generate FirstMove
+                    (Random.map
+                        (\coords ->
+                            { r = r
+                            , c = c
+                            , coords = coords
+                            }
+                        )
+                        (shuffle
+                            (allCoords grid)
+                        )
+                    )
+    in
     case msg of
         Reset ->
             let
                 newModel =
                     initModel model.rows model.cols model.numMines
             in
-            ( newModel
-            , generate SetBombs (shuffle (allCoords newModel.grid))
-            )
+            ( newModel, Cmd.none )
 
         ChangeInput k v ->
             let
@@ -256,32 +315,40 @@ update msg model =
             in
             ( newModel, Cmd.none )
 
-        SetBombs coords ->
-            ( { model | grid = setMines model.numMines coords model.grid }
-            , Cmd.none
-            )
-
-        ClickRC r c ->
+        FirstMove { r, c, coords } ->
             let
-                maybeCell =
-                    Array2D.get r c model.grid
+                grid =
+                    setMines model.numMines coords model.grid
             in
-            case maybeCell of
+            case Array2D.get r c grid of
                 Nothing ->
                     ( model, Cmd.none )
 
                 Just cell ->
-                    case cell.revealed of
-                        Default ->
-                            ( { model
-                                | grid =
-                                    revealCellsFrom r c model.grid
-                              }
-                            , Cmd.none
-                            )
+                    let
+                        safeGrid =
+                            if cell.isMine && model.numMines < List.length coords then
+                                -- Add an extra mine, then remove the clicked one
+                                grid
+                                    |> setMines (model.numMines + 1) coords
+                                    |> Array2D.set r c defaultCellState
 
-                        _ ->
-                            ( model, Cmd.none )
+                            else
+                                grid
+                    in
+                    ( { model | grid = revealCellsFrom r c safeGrid }, Cmd.none )
+
+        ClickRC r c ->
+            if getRevealedCells model.grid == 0 then
+                -- Generate mines on first move
+                ( model, genNewMines r c model.grid )
+
+            else
+                ( { model
+                    | grid = revealCellsFrom r c model.grid
+                  }
+                , Cmd.none
+                )
 
         DebugRevealAll ->
             ( { model
