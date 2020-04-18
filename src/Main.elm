@@ -347,16 +347,9 @@ update msg model =
     case msg of
         Reset ->
             let
-                newModel =
-                    initModel model.rows model.cols model.numMines
-            in
-            ( newModel, Cmd.none )
-
-        ChangeInput k v ->
-            let
-                vPosIntOr =
-                    \def ->
-                        case String.toInt v of
+                posIntOr =
+                    \str def ->
+                        case String.toInt str of
                             Nothing ->
                                 def
 
@@ -367,6 +360,16 @@ update msg model =
                                 else
                                     def
 
+                newModel =
+                    initModel
+                        (posIntOr model.userInputs.rows model.rows)
+                        (posIntOr model.userInputs.cols model.cols)
+                        (posIntOr model.userInputs.numMines model.numMines)
+            in
+            ( newModel, Cmd.none )
+
+        ChangeInput k v ->
+            let
                 userInputs =
                     model.userInputs
 
@@ -374,20 +377,17 @@ update msg model =
                     case k of
                         NumMines ->
                             { model
-                                | numMines = vPosIntOr model.numMines
-                                , userInputs = { userInputs | numMines = v }
+                                | userInputs = { userInputs | numMines = v }
                             }
 
                         Rows ->
                             { model
-                                | rows = vPosIntOr model.rows
-                                , userInputs = { userInputs | rows = v }
+                                | userInputs = { userInputs | rows = v }
                             }
 
                         Cols ->
                             { model
-                                | cols = vPosIntOr model.cols
-                                , userInputs = { userInputs | cols = v }
+                                | userInputs = { userInputs | cols = v }
                             }
             in
             ( newModel, Cmd.none )
