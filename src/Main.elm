@@ -18,17 +18,61 @@ import Shuffle exposing (shuffle)
 
 defaultRows : Int
 defaultRows =
-    20
+    9
 
 
 defaultCols : Int
 defaultCols =
-    20
+    9
 
 
 defaultMines : Int
 defaultMines =
-    50
+    10
+
+
+
+-- CONSTANTS
+
+
+emojiMine : String
+emojiMine =
+    "💣"
+
+
+emojiFlag : String
+emojiFlag =
+    "🚩"
+
+
+emojiFlagWrong : String
+emojiFlagWrong =
+    "✖️"
+
+
+emojiBoom : String
+emojiBoom =
+    "💥"
+
+
+emojiSmiley : String
+emojiSmiley =
+    "🙂"
+
+
+emojiSmileyO : String
+emojiSmileyO =
+    "😮"
+
+
+emojiSmileyDead : String
+emojiSmileyDead =
+    "😵"
+
+
+emojiSmileyWin : String
+emojiSmileyWin =
+    "😎"
 
 
 
@@ -516,9 +560,12 @@ cellButtonView attrs str =
     span (class "gamecell" :: attrs) [ p [] [ text str ] ]
 
 
-cellView : Bool -> Bool -> Int -> Int -> CellState -> Html Msg
-cellView debugShow gameOver row col cell =
+cellView : Bool -> GamePhase -> Int -> Int -> CellState -> Html Msg
+cellView debugShow gamePhase row col cell =
     let
+        gameOver =
+            gamePhase == Won || gamePhase == Lost
+
         showMines =
             debugShow || gameOver
     in
@@ -533,11 +580,18 @@ cellView debugShow gameOver row col cell =
                     , onRightClick (RightClickRC row col)
                     ]
                 )
-                (if showMines && cell.isMine then
-                    "💣"
+                (case ( cell.isMine, gamePhase, debugShow ) of
+                    ( True, _, True ) ->
+                        emojiMine
 
-                 else
-                    ""
+                    ( True, Lost, _ ) ->
+                        emojiMine
+
+                    ( True, Won, _ ) ->
+                        emojiFlag
+
+                    _ ->
+                        ""
                 )
 
         Flagged ->
@@ -552,10 +606,10 @@ cellView debugShow gameOver row col cell =
                        )
                 )
                 (if showMines && not cell.isMine then
-                    "✖️"
+                    emojiFlagWrong
 
                  else
-                    "🚩"
+                    emojiFlag
                 )
 
         Revealed 0 ->
@@ -568,7 +622,7 @@ cellView debugShow gameOver row col cell =
                 (String.fromInt n)
 
         RevealedMine ->
-            cellButtonView [ class "revealed mine" ] "💥"
+            cellButtonView [ class "revealed mine" ] emojiBoom
 
 
 uiView : UserInput -> String -> String -> Html Msg
@@ -606,16 +660,16 @@ view model =
         smiley =
             case ( model.gamePhase, model.userInputs.leftButtonDown ) of
                 ( Won, _ ) ->
-                    "😎"
+                    emojiSmileyWin
 
                 ( Lost, _ ) ->
-                    "😵"
+                    emojiSmileyDead
 
                 ( Playing, True ) ->
-                    "😮"
+                    emojiSmileyO
 
                 ( Playing, False ) ->
-                    "🙂"
+                    emojiSmiley
     in
     main_ [ onRightClick Nop ]
         [ div
@@ -666,7 +720,7 @@ view model =
                             (\c cell ->
                                 cellView
                                     model.userInputs.debugShowAll
-                                    isGameOver
+                                    model.gamePhase
                                     r
                                     c
                                     cell
