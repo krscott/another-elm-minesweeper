@@ -2,6 +2,28 @@ main {
     text-align: center;
 }
 
+.header {
+    user-select: none;
+    padding: 1rem;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: x-large;
+    font-weight: bold;
+}
+
+.header > :nth-child(1) {
+    float: left;
+    width: 5rem;
+}
+
+.header > :nth-child(2) {
+    margin: 0 auto;
+}
+
+.header > :nth-child(3) {
+    float: right;
+    width: 5rem;
+}
+
 .gameboard,
 .reset-button {
     user-select: none;

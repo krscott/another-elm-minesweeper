@@ -593,6 +593,13 @@ checkbox msg name uiValue =
 view : Model -> Html Msg
 view model =
     let
+        apparentRemaining =
+            model.numMines
+                - (gridToFlatList model.grid
+                    |> List.filter (\cell -> cell.revealed == Flagged)
+                    |> List.length
+                  )
+
         isGameOver =
             model.gamePhase == Won || model.gamePhase == Lost
 
@@ -611,8 +618,15 @@ view model =
                     "🙂"
     in
     main_ [ onRightClick Nop ]
-        [ div [ class "header" ]
-            [ div [ class "reset-button", onClick Reset ] [ p [] [ text smiley ] ]
+        [ div
+            [ class "header" ]
+            [ div [ class "remaining-count" ]
+                [ text (String.fromInt apparentRemaining) ]
+            , div
+                [ class "reset-button", onClick Reset ]
+                [ p [] [ text smiley ] ]
+            , div [ class "time" ]
+                [ text (String.fromInt 0) ]
             ]
         , div
             (Mouse.onDown
