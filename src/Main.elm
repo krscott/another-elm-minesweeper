@@ -73,6 +73,12 @@ defaultCellState =
     { revealed = Default, isMine = False }
 
 
+type GamePhase
+    = Playing
+    | Won
+    | Lost
+
+
 type alias Model =
     { userInputs :
         { numMines : String
@@ -85,7 +91,7 @@ type alias Model =
     , rows : Int
     , cols : Int
     , grid : Array2D CellState
-    , isGameOver : Bool
+    , gamePhase : GamePhase
     }
 
 
@@ -102,7 +108,7 @@ initModel rows cols n =
     , rows = rows
     , cols = cols
     , grid = Array2D.repeat rows cols defaultCellState
-    , isGameOver = False
+    , gamePhase = Playing
     }
 
 
@@ -302,12 +308,38 @@ update msg model =
                     maybeClickedCellIsMine =
                         Array2D.get r c newGrid |> Maybe.map (\cell -> cell.isMine)
 
-                    isGameOver =
+                    isGameLost =
                         maybeClickedCellIsMine == Just True
+
+                    isGameWon =
+                        (gridToFlatList newGrid
+                            |> List.map
+                                (\cell ->
+                                    case ( cell.isMine, cell.revealed ) of
+                                        ( False, Default ) ->
+                                            1
+
+                                        ( False, Flagged ) ->
+                                            1
+
+                                        _ ->
+                                            0
+                                )
+                            |> List.sum
+                        )
+                            == 0
                 in
                 ( { model_
                     | grid = newGrid
-                    , isGameOver = isGameOver
+                    , gamePhase =
+                        if isGameWon then
+                            Won
+
+                        else if isGameLost then
+                            Lost
+
+                        else
+                            Playing
                   }
                 , Cmd.none
                 )
@@ -446,7 +478,7 @@ update msg model =
                     Array2D.indexedMap
                         (\r c cell -> revealCell r c cell model.grid)
                         model.grid
-                , isGameOver = True
+                , gamePhase = Lost
               }
             , Cmd.none
             )
@@ -561,15 +593,22 @@ checkbox msg name uiValue =
 view : Model -> Html Msg
 view model =
     let
+        isGameOver =
+            model.gamePhase == Won || model.gamePhase == Lost
+
         smiley =
-            if model.isGameOver then
-                "😵"
+            case ( model.gamePhase, model.userInputs.leftButtonDown ) of
+                ( Won, _ ) ->
+                    "😎"
 
-            else if model.userInputs.leftButtonDown then
-                "😮"
+                ( Lost, _ ) ->
+                    "😵"
 
-            else
-                "🙂"
+                ( Playing, True ) ->
+                    "😮"
+
+                ( Playing, False ) ->
+                    "🙂"
     in
     main_ [ onRightClick Nop ]
         [ div [ class "header" ]
@@ -593,7 +632,7 @@ view model =
                             Nop
                     )
                 :: class "gameboard"
-                :: (if model.isGameOver then
+                :: (if isGameOver then
                         [ class "gameover" ]
 
                     else
@@ -613,7 +652,7 @@ view model =
                             (\c cell ->
                                 cellView
                                     model.userInputs.debugShowAll
-                                    model.isGameOver
+                                    isGameOver
                                     r
                                     c
                                     cell
