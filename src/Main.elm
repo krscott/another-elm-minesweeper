@@ -665,11 +665,15 @@ view : Model -> Html Msg
 view model =
     let
         apparentRemaining =
-            model.numMines
-                - (gridToFlatList model.grid
-                    |> List.filter (\cell -> cell.revealed == Flagged)
-                    |> List.length
-                  )
+            if model.gamePhase == Won then
+                0
+
+            else
+                model.numMines
+                    - (gridToFlatList model.grid
+                        |> List.filter (\cell -> cell.revealed == Flagged)
+                        |> List.length
+                      )
 
         isGameOver =
             model.gamePhase == Won || model.gamePhase == Lost
