@@ -2,6 +2,10 @@ body {
     background-color: black;
     margin: 0;
     padding: 0;
+    cursor: default;
+    user-select: none;
+    font-family: 'Arial Narrow', Arial, sans-serif;
+    font-size: small;
 }
 
 #grid-container {
@@ -10,9 +14,27 @@ body {
     grid-template-rows: auto 1fr;
 }
 
-main {
+#grid-container > :first-child {
     grid-column: 2/3;
     grid-row: 1/2;
+}
+
+.menubar {
+    background-color: lightgray;
+}
+
+.menubar > div {
+    display: inline-block;
+    padding: 0.3rem 0.5rem;
+}
+
+.menubar > div:hover,
+.menubar > .highlight {
+    background-color: darkblue;
+    color: lightgray;
+}
+
+main {
     text-align: center;
     border-style: outset;
     border-width: 6px;
@@ -21,7 +43,6 @@ main {
 }
 
 .header {
-    user-select: none;
     padding: 8px;
     font-family: 'Courier New', Courier, monospace;
     font-size: x-large;
@@ -52,15 +73,20 @@ main {
     border-style: inset;
 }
 
-.gameboard,
-.reset-button {
-    user-select: none;
-}
-
 .gameboard {
+    display: grid;
+    grid-template-columns: auto;
+    grid-template-rows: auto;
+
+    /* position: relative; */
     border-style: inset;
     border-width: 4px;
     white-space: nowrap;
+}
+
+.gameboard > div {
+    grid-column: 1/2;
+    grid-row: 1/2;
 }
 
 .gamecell,
@@ -105,7 +131,7 @@ main {
 }
 
 .revealed,
-.gameboard:not(.gameover).left-mouse-down .gamecell:not(.flagged):hover:active,
+.gamecells:not(.gameover).left-mouse-down .gamecell:not(.flagged):hover:active,
 .reset-button:hover:active {
     border-width: 1px 0px 0px 1px;
     padding: 0px 0px 5px 0px;
@@ -150,11 +176,13 @@ main {
 }
 
 .menu {
-    margin-top: 0.5rem;
+    /* background-color: lightgray; */
+    background-color: rgba(211, 211, 211, 0.8);
+    z-index: 9;
 }
 
 .menu > * {
-    margin: 0.3rem;
+    margin: 0.5rem;
 }
 
 .user-input > * {

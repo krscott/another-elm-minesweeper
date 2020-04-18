@@ -125,7 +125,8 @@ type GamePhase
 
 type alias Model =
     { userInputs :
-        { numMines : String
+        { isMenuOpen : Bool
+        , numMines : String
         , rows : String
         , cols : String
         , debugShowAll : Bool
@@ -142,7 +143,8 @@ type alias Model =
 initModel : Int -> Int -> Int -> Model
 initModel rows cols n =
     { userInputs =
-        { numMines = String.fromInt n
+        { isMenuOpen = False
+        , numMines = String.fromInt n
         , rows = String.fromInt rows
         , cols = String.fromInt cols
         , debugShowAll = False
@@ -322,6 +324,7 @@ type Msg
     | DebugRevealAll
     | DebugToggleShowAll
     | LeftMouseDown Bool
+    | ToggleMenu
     | Nop
 
 
@@ -411,6 +414,20 @@ update msg model =
                         (posIntOr model.userInputs.numMines model.numMines)
             in
             ( newModel, Cmd.none )
+
+        ToggleMenu ->
+            let
+                userInputs =
+                    model.userInputs
+            in
+            ( { model
+                | userInputs =
+                    { userInputs
+                        | isMenuOpen = not userInputs.isMenuOpen
+                    }
+              }
+            , Cmd.none
+            )
 
         ChangeInput k v ->
             let
@@ -670,28 +687,59 @@ view model =
 
                 ( Playing, False ) ->
                     emojiSmiley
-    in
-    main_ [ onRightClick Nop ]
-        [ div
-            [ class "header" ]
-            [ div [ class "remaining-count" ]
-                [ text (String.fromInt apparentRemaining) ]
-            , div
-                [ class "reset-button", onClick Reset ]
-                [ p [] [ text smiley ] ]
-            , div [ class "time" ]
-                [ text (String.fromInt 0) ]
-            ]
-        , div
-            (Mouse.onDown
-                (\event ->
-                    if event.button == Mouse.MainButton then
-                        LeftMouseDown True
 
-                    else
-                        Nop
-                )
-                :: Mouse.onUp
+        menubar =
+            div [ class "menubar" ]
+                [ div
+                    ((if model.userInputs.isMenuOpen then
+                        [ class "highlight" ]
+
+                      else
+                        []
+                     )
+                        ++ [ onClick ToggleMenu ]
+                    )
+                    [ text "Game" ]
+                , div [ onClick Nop ] [ text "Help" ]
+                ]
+
+        menu =
+            div
+                [ class "menu" ]
+                [ uiView NumMines "Mines" model.userInputs.numMines
+                , uiView Rows "Rows" model.userInputs.rows
+                , uiView Cols "Cols" model.userInputs.cols
+                , div []
+                    [ checkbox
+                        DebugToggleShowAll
+                        "DEBUG: Show Bombs"
+                        model.userInputs.debugShowAll
+                    ]
+                , button [ onClick DebugRevealAll ] [ text "DEBUG: Reveal All" ]
+                ]
+
+        header =
+            div [ class "header" ]
+                [ div [ class "remaining-count" ]
+                    [ text (String.fromInt apparentRemaining) ]
+                , div
+                    [ class "reset-button", onClick Reset ]
+                    [ p [] [ text smiley ] ]
+                , div [ class "time" ]
+                    [ text (String.fromInt 0) ]
+                ]
+
+        gamecells =
+            div
+                [ Mouse.onDown
+                    (\event ->
+                        if event.button == Mouse.MainButton then
+                            LeftMouseDown True
+
+                        else
+                            Nop
+                    )
+                , Mouse.onUp
                     (\event ->
                         if event.button == Mouse.MainButton then
                             LeftMouseDown False
@@ -699,48 +747,55 @@ view model =
                         else
                             Nop
                     )
-                :: class "gameboard"
-                :: (if isGameOver then
-                        [ class "gameover" ]
-
-                    else
-                        []
-                   )
-                ++ (if model.userInputs.leftButtonDown then
-                        [ class "left-mouse-down" ]
-
-                    else
-                        []
-                   )
-            )
-            (List.indexedMap
-                (\r row ->
-                    div []
-                        (List.indexedMap
-                            (\c cell ->
-                                cellView
-                                    model.userInputs.debugShowAll
-                                    model.gamePhase
-                                    r
-                                    c
-                                    cell
-                            )
-                            (Array.toList row)
-                        )
-                )
-                (Array.toList model.grid.data)
-            )
-        , div
-            [ class "menu" ]
-            [ uiView NumMines "Mines" model.userInputs.numMines
-            , uiView Rows "Rows" model.userInputs.rows
-            , uiView Cols "Cols" model.userInputs.cols
-            , div []
-                [ checkbox
-                    DebugToggleShowAll
-                    "DEBUG: Show Bombs"
-                    model.userInputs.debugShowAll
+                , class "gamecells"
                 ]
-            , button [ onClick DebugRevealAll ] [ text "DEBUG: Reveal All" ]
+                (List.indexedMap
+                    (\r row ->
+                        div []
+                            (List.indexedMap
+                                (\c cell ->
+                                    cellView
+                                        model.userInputs.debugShowAll
+                                        model.gamePhase
+                                        r
+                                        c
+                                        cell
+                                )
+                                (Array.toList row)
+                            )
+                    )
+                    (Array.toList model.grid.data)
+                )
+
+        gameboard =
+            div
+                (class "gameboard"
+                    :: (if isGameOver then
+                            [ class "gameover" ]
+
+                        else
+                            []
+                       )
+                    ++ (if model.userInputs.leftButtonDown then
+                            [ class "left-mouse-down" ]
+
+                        else
+                            []
+                       )
+                )
+                ((if model.userInputs.isMenuOpen then
+                    [ menu ]
+
+                  else
+                    []
+                 )
+                    ++ [ gamecells ]
+                )
+    in
+    div [ onRightClick Nop ]
+        [ menubar
+        , main_ []
+            [ header
+            , gameboard
             ]
         ]
