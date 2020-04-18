@@ -1,18 +1,28 @@
+body {
+    background-color: black;
+}
+
 main {
     text-align: center;
+    border-style: outset;
+    border-width: 6px;
+    padding: 8px;
+    background-color: lightgray;
 }
 
 .header {
     user-select: none;
-    padding: 1rem;
+    padding: 8px;
     font-family: 'Courier New', Courier, monospace;
     font-size: x-large;
     font-weight: bold;
+    border-style: inset;
+    border-width: 4px;
+    margin-bottom: 8px;
 }
 
 .header > :nth-child(1) {
     float: left;
-    width: 5rem;
 }
 
 .header > :nth-child(2) {
@@ -21,12 +31,25 @@ main {
 
 .header > :nth-child(3) {
     float: right;
-    width: 5rem;
+}
+
+.remaining-count,
+.time {
+    padding: 0.1rem;
+    background-color: black;
+    color: crimson;
+    width: 4rem;
+    border-style: inset;
 }
 
 .gameboard,
 .reset-button {
     user-select: none;
+}
+
+.gameboard {
+    border-style: inset;
+    border-width: 4px;
 }
 
 .gamecell,
