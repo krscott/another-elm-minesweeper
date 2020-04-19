@@ -1,6 +1,8 @@
 # another-elm-minesweeper
 Yet another Elm implementation of Minesweeper
 
+[Live Demo](https://krscott.github.io/another-elm-minesweeper/)
+
 ![gameboard example](https://raw.githubusercontent.com/krscott/another-elm-minesweeper/master/gameboard.png)
 
 ## Intro
