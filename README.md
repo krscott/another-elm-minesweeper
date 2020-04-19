@@ -5,13 +5,8 @@ Yet another Elm implementation of Minesweeper
 I created this project as an exercise to learn Elm.
 
 ## Build
-Compile using elm make, then copy over the html and css files.
-
-```bash
-mkdir -p dist
-elm make src/Main.elm --output dist/main.js
-cp src/index.html src/style.css dist
-```
+The script `build.sh` compiles the source using elm make, then copies over
+the html and css files.
 
 ## Live Dev Environment
 Elm-live will refresh the browser window refresh whenever an .elm file is
