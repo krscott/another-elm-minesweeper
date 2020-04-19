@@ -7,7 +7,7 @@ Yet another Elm implementation of Minesweeper
 I created this project as an exercise to learn Elm.
 
 ## Build
-The script `build.sh` compiles the source using elm make, then copies over
+The script `build.sh` compiles the source using `elm make`, then copies over
 the html and css files.
 
 ## Live Dev Environment
