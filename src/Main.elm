@@ -36,6 +36,11 @@ defaultMines =
 -- CONSTANTS
 
 
+debugEnable : Bool
+debugEnable =
+    False
+
+
 emojiMine : String
 emojiMine =
     "💣"
@@ -327,10 +332,17 @@ type alias FirstMoveRecord =
     }
 
 
+type SettingPreset
+    = Easy
+    | Medium
+    | Hard
+
+
 type Msg
     = Reset
     | Tick Time.Posix
     | ChangeInput UserInput String
+    | ChangePreset SettingPreset
     | FirstMove FirstMoveRecord
     | ClickRC Int Int
     | RightClickRC Int Int
@@ -493,6 +505,32 @@ update msg model =
                             }
             in
             ( newModel, Cmd.none )
+
+        ChangePreset preset ->
+            let
+                userInputs =
+                    model.userInputs
+
+                setInputs =
+                    \n r c ->
+                        { userInputs
+                            | numMines = String.fromInt n
+                            , rows = String.fromInt r
+                            , cols = String.fromInt c
+                        }
+
+                newUserInputs =
+                    case preset of
+                        Easy ->
+                            setInputs 10 9 9
+
+                        Medium ->
+                            setInputs 40 13 15
+
+                        Hard ->
+                            setInputs 99 16 30
+            in
+            ( { model | userInputs = newUserInputs }, Cmd.none )
 
         FirstMove { r, c, coords } ->
             let
@@ -772,17 +810,29 @@ view model =
         optionsMenu =
             div
                 [ class "menu options-menu" ]
-                [ uiView NumMines "Mines" model.userInputs.numMines
-                , uiView Rows "Rows" model.userInputs.rows
-                , uiView Cols "Cols" model.userInputs.cols
-                , div []
-                    [ checkbox
-                        DebugToggleShowAll
-                        "DEBUG: Show Bombs"
-                        model.userInputs.debugShowAll
+                ([ div [ class "presets" ]
+                    [ button [ onClick (ChangePreset Easy) ] [ text "Easy" ]
+                    , button [ onClick (ChangePreset Medium) ] [ text "Medium" ]
+                    , button [ onClick (ChangePreset Hard) ] [ text "Hard" ]
                     ]
-                , button [ onClick DebugRevealAll ] [ text "DEBUG: Reveal All" ]
-                ]
+                 , uiView NumMines "Mines" model.userInputs.numMines
+                 , uiView Rows "Rows" model.userInputs.rows
+                 , uiView Cols "Cols" model.userInputs.cols
+                 ]
+                    ++ (if debugEnable then
+                            [ div []
+                                [ checkbox
+                                    DebugToggleShowAll
+                                    "DEBUG: Show Bombs"
+                                    model.userInputs.debugShowAll
+                                ]
+                            , button [ onClick DebugRevealAll ] [ text "DEBUG: Reveal All" ]
+                            ]
+
+                        else
+                            []
+                       )
+                )
 
         aboutMenu =
             div
