@@ -4,7 +4,7 @@ import Array
 import Array2D exposing (Array2D)
 import Browser
 import Html exposing (..)
-import Html.Attributes exposing (checked, class, type_, value)
+import Html.Attributes exposing (checked, class, href, target, type_, value)
 import Html.Events exposing (custom, onClick, onInput)
 import Html.Events.Extra.Mouse as Mouse
 import Json.Decode
@@ -34,6 +34,26 @@ defaultMines =
 
 
 -- CONSTANTS
+
+
+appTitle : String
+appTitle =
+    "Another Elm Minesweeper"
+
+
+appCopyright : String
+appCopyright =
+    "© 2020 Kris Scott"
+
+
+appSource : String
+appSource =
+    "Source on Github"
+
+
+appSourceUrl : String
+appSourceUrl =
+    "https://github.com/krscott/another-elm-minesweeper"
 
 
 debugEnable : Bool
@@ -837,8 +857,9 @@ view model =
         aboutMenu =
             div
                 [ class "menu about-menu" ]
-                [ p [] [ text "Elmsweeper" ]
-                , p [] [ text "By Kris Scott" ]
+                [ p [] [ text appTitle ]
+                , p [] [ text appCopyright ]
+                , p [] [ a [ href appSourceUrl, target "_blank" ] [ text appSource ] ]
                 ]
 
         header =
