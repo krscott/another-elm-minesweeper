@@ -124,9 +124,15 @@ type GamePhase
     | Lost
 
 
+type MenuType
+    = None
+    | Options
+    | About
+
+
 type alias Model =
     { userInputs :
-        { isMenuOpen : Bool
+        { menuOpen : MenuType
         , numMines : String
         , rows : String
         , cols : String
@@ -146,7 +152,7 @@ type alias Model =
 initModel : Int -> Int -> Int -> Model
 initModel rows cols n =
     { userInputs =
-        { isMenuOpen = False
+        { menuOpen = None
         , numMines = String.fromInt n
         , rows = String.fromInt rows
         , cols = String.fromInt cols
@@ -330,7 +336,7 @@ type Msg
     | DebugRevealAll
     | DebugToggleShowAll
     | LeftMouseDown Bool
-    | ToggleMenu
+    | OpenMenu MenuType
     | Nop
 
 
@@ -444,15 +450,23 @@ update msg model =
             , Cmd.none
             )
 
-        ToggleMenu ->
+        OpenMenu menuType ->
             let
                 userInputs =
                     model.userInputs
+
+                newMenuOpen =
+                    if userInputs.menuOpen == menuType then
+                        -- toggle off if already open
+                        None
+
+                    else
+                        menuType
             in
             ( { model
                 | userInputs =
                     { userInputs
-                        | isMenuOpen = not userInputs.isMenuOpen
+                        | menuOpen = newMenuOpen
                     }
               }
             , Cmd.none
@@ -732,22 +746,26 @@ view model =
                 ( Playing, False ) ->
                     emojiSmiley
 
-        menubar =
-            div [ class "menubar" ]
-                [ div
-                    ((if model.userInputs.isMenuOpen then
+        menubarItem =
+            \menuType name ->
+                div
+                    ((if model.userInputs.menuOpen == menuType then
                         [ class "highlight" ]
 
                       else
                         []
                      )
-                        ++ [ onClick ToggleMenu ]
+                        ++ [ onClick (OpenMenu menuType) ]
                     )
-                    [ text "Game" ]
-                , div [ onClick Nop ] [ text "Help" ]
+                    [ text name ]
+
+        menubar =
+            div [ class "menubar" ]
+                [ menubarItem Options "Options"
+                , menubarItem About "About"
                 ]
 
-        menu =
+        optionsMenu =
             div
                 [ class "menu" ]
                 [ uiView NumMines "Mines" model.userInputs.numMines
@@ -827,11 +845,15 @@ view model =
                             []
                        )
                 )
-                ((if model.userInputs.isMenuOpen then
-                    [ menu ]
+                ((case model.userInputs.menuOpen of
+                    None ->
+                        []
 
-                  else
-                    []
+                    Options ->
+                        [ optionsMenu ]
+
+                    About ->
+                        [ optionsMenu ]
                  )
                     ++ [ gamecells ]
                 )
