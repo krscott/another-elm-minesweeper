@@ -119,7 +119,8 @@ defaultCellState =
 
 
 type GamePhase
-    = Playing
+    = Idle
+    | Playing
     | Won
     | Lost
 
@@ -165,7 +166,7 @@ initModel rows cols n =
     , rows = rows
     , cols = cols
     , grid = Array2D.repeat rows cols defaultCellState
-    , gamePhase = Playing
+    , gamePhase = Idle
     }
 
 
@@ -428,27 +429,24 @@ update msg model =
             ( newModel, Cmd.none )
 
         Tick time ->
-            let
-                timeStart =
-                    if 0 == Time.posixToMillis model.timeStart then
-                        time
+            if model.gamePhase == Playing then
+                let
+                    timeStart =
+                        if 0 == Time.posixToMillis model.timeStart then
+                            time
 
-                    else
-                        model.timeStart
+                        else
+                            model.timeStart
+                in
+                ( { model
+                    | timeStart = timeStart
+                    , timeCurrent = time
+                  }
+                , Cmd.none
+                )
 
-                timeCurrent =
-                    if model.gamePhase == Playing then
-                        time
-
-                    else
-                        model.timeCurrent
-            in
-            ( { model
-                | timeStart = timeStart
-                , timeCurrent = timeCurrent
-              }
-            , Cmd.none
-            )
+            else
+                ( model, Cmd.none )
 
         OpenMenu menuType ->
             let
@@ -743,7 +741,13 @@ view model =
                 ( Playing, True ) ->
                     emojiSmileyO
 
+                ( Idle, True ) ->
+                    emojiSmileyO
+
                 ( Playing, False ) ->
+                    emojiSmiley
+
+                ( Idle, False ) ->
                     emojiSmiley
 
         menubarItem =
