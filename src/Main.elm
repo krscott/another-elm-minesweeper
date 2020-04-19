@@ -10,6 +10,7 @@ import Html.Events.Extra.Mouse as Mouse
 import Json.Decode
 import Random exposing (generate)
 import Shuffle exposing (shuffle)
+import Time
 
 
 
@@ -132,6 +133,8 @@ type alias Model =
         , debugShowAll : Bool
         , leftButtonDown : Bool
         }
+    , timeStart : Time.Posix
+    , timeCurrent : Time.Posix
     , numMines : Int
     , rows : Int
     , cols : Int
@@ -150,6 +153,8 @@ initModel rows cols n =
         , debugShowAll = False
         , leftButtonDown = False
         }
+    , timeStart = Time.millisToPosix 0
+    , timeCurrent = Time.millisToPosix 0
     , numMines = n
     , rows = rows
     , cols = cols
@@ -317,6 +322,7 @@ type alias FirstMoveRecord =
 
 type Msg
     = Reset
+    | Tick Time.Posix
     | ChangeInput UserInput String
     | FirstMove FirstMoveRecord
     | ClickRC Int Int
@@ -379,11 +385,11 @@ update msg model =
                 ( { model_
                     | grid = newGrid
                     , gamePhase =
-                        if isGameWon then
-                            Won
-
-                        else if isGameLost then
+                        if isGameLost then
                             Lost
+
+                        else if isGameWon then
+                            Won
 
                         else
                             Playing
@@ -414,6 +420,29 @@ update msg model =
                         (posIntOr model.userInputs.numMines model.numMines)
             in
             ( newModel, Cmd.none )
+
+        Tick time ->
+            let
+                timeStart =
+                    if 0 == Time.posixToMillis model.timeStart then
+                        time
+
+                    else
+                        model.timeStart
+
+                timeCurrent =
+                    if model.gamePhase == Playing then
+                        time
+
+                    else
+                        model.timeCurrent
+            in
+            ( { model
+                | timeStart = timeStart
+                , timeCurrent = timeCurrent
+              }
+            , Cmd.none
+            )
 
         ToggleMenu ->
             let
@@ -554,7 +583,7 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.none
+    Time.every 100 Tick
 
 
 
@@ -669,11 +698,22 @@ view model =
                 0
 
             else
-                model.numMines
+                min 999 model.numMines
                     - (gridToFlatList model.grid
                         |> List.filter (\cell -> cell.revealed == Flagged)
                         |> List.length
                       )
+
+        duration =
+            min 999
+                (round
+                    (toFloat
+                        (Time.posixToMillis model.timeCurrent
+                            - Time.posixToMillis model.timeStart
+                        )
+                        / 1000.0
+                    )
+                )
 
         isGameOver =
             model.gamePhase == Won || model.gamePhase == Lost
@@ -725,12 +765,12 @@ view model =
         header =
             div [ class "header" ]
                 [ div [ class "remaining-count" ]
-                    [ text (String.fromInt apparentRemaining) ]
+                    [ text (String.padLeft 3 '0' (String.fromInt apparentRemaining)) ]
                 , div
                     [ class "reset-button", onClick Reset ]
                     [ p [] [ text smiley ] ]
                 , div [ class "time" ]
-                    [ text (String.fromInt 0) ]
+                    [ text (String.padLeft 3 '0' (String.fromInt duration)) ]
                 ]
 
         gamecells =

@@ -66,10 +66,10 @@ main {
 
 .remaining-count,
 .time {
-    padding: 0.1rem;
+    padding: 0.2rem 0.3rem 0 0.3rem;
     background-color: black;
     color: crimson;
-    width: 4rem;
+    /* width: 3.5rem; */
     border-style: inset;
 }
 
