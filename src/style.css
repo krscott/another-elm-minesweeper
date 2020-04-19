@@ -131,7 +131,7 @@ main {
 }
 
 .revealed,
-.gamecells:not(.gameover).left-mouse-down .gamecell:not(.flagged):hover:active,
+.gameboard:not(.gameover).left-mouse-down .gamecell:not(.flagged):hover:active,
 .reset-button:hover:active {
     border-width: 1px 0px 0px 1px;
     padding: 0px 0px 5px 0px;
