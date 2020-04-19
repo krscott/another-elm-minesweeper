@@ -545,7 +545,7 @@ update msg model =
                             setInputs 10 9 9
 
                         Medium ->
-                            setInputs 40 13 15
+                            setInputs 40 16 16
 
                         Hard ->
                             setInputs 99 16 30

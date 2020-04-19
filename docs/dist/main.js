@@ -6247,7 +6247,7 @@ var $author$project$Main$update = F2(
 						case 'Easy':
 							return A3(setInputs, 10, 9, 9);
 						case 'Medium':
-							return A3(setInputs, 40, 13, 15);
+							return A3(setInputs, 40, 16, 16);
 						default:
 							return A3(setInputs, 99, 16, 30);
 					}
