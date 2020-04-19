@@ -771,7 +771,7 @@ view model =
 
         optionsMenu =
             div
-                [ class "menu" ]
+                [ class "menu options-menu" ]
                 [ uiView NumMines "Mines" model.userInputs.numMines
                 , uiView Rows "Rows" model.userInputs.rows
                 , uiView Cols "Cols" model.userInputs.cols
@@ -782,6 +782,13 @@ view model =
                         model.userInputs.debugShowAll
                     ]
                 , button [ onClick DebugRevealAll ] [ text "DEBUG: Reveal All" ]
+                ]
+
+        aboutMenu =
+            div
+                [ class "menu about-menu" ]
+                [ p [] [ text "Elmsweeper" ]
+                , p [] [ text "By Kris Scott" ]
                 ]
 
         header =
@@ -857,7 +864,7 @@ view model =
                         [ optionsMenu ]
 
                     About ->
-                        [ optionsMenu ]
+                        [ aboutMenu ]
                  )
                     ++ [ gamecells ]
                 )

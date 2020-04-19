@@ -179,6 +179,8 @@ main {
     /* background-color: lightgray; */
     background-color: rgba(211, 211, 211, 0.8);
     z-index: 9;
+    font-size: larger;
+    padding-top: 1.5rem;
 }
 
 .menu > * {
