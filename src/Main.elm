@@ -43,7 +43,7 @@ appTitle =
 
 appCopyright : String
 appCopyright =
-    "© 2020 Kris Scott"
+    "programmed by Kris Scott"
 
 
 appSource : String
